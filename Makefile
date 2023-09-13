@@ -1,4 +1,4 @@
 SRCFILES = ./src/main.c
 
 all:
-	make
+	make gcc $SRCFILES -o3
