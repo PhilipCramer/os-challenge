@@ -71,5 +71,5 @@ int main(){
     close(client_sock);
     close(socket_desc);
 
-  return 0
+   return 0;
 }
