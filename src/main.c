@@ -13,6 +13,7 @@ int main(){
     memset(server_message, '\0', sizeof(server_message));
     memset(client_message, '\0', sizeof(client_message));
 
+
     // Create socket:
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
 
