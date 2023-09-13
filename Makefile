@@ -9,7 +9,7 @@ SRC = $(shell ls ./src/*.c)
 CFLAGS = -Wall -O3
 
 # the build target executable:
-TARGET = server
+TARGET = server.out
 
 all: $(TARGET)
 
