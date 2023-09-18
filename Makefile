@@ -2,11 +2,12 @@
 CC = gcc
 
 # compiler flags:
-#  -g    adds debugging information to the executable file
-#  -Wall turns on most, but not all, compiler warnings
+#  -g    	adds debugging information to the executable file
+#  -Wall 	turns on most, but not all, compiler warnings
+#  -O3		tells the compiler to utilize optimization level 3
 
 SRC = $(shell ls ./src/*.c)
-CFLAGS = -Wall -O3
+CFLAGS = -g -Wall -O3
 
 # the build target executable:
 TARGET = server.out
