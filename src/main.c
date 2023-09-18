@@ -3,7 +3,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-int main(){
+int main(int argc, char *argv[]){
 
     int socket_desc, client_sock, client_size;
     struct sockaddr_in server_addr, client_addr;
