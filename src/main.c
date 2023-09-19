@@ -3,7 +3,17 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+
 int main(int argc, char *argv[]){
+        
+    int port_num;
+    if(argc != 2){
+      printf("Please provide a portnumber for the server.\n");
+      exit(127);
+    }
+    else if ((port_num = atoi(argv[1]) == 0)){
+      exit(127);
+    }
 
     int socket_desc, client_sock, client_size;
     struct sockaddr_in server_addr, client_addr;
