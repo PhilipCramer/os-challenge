@@ -7,15 +7,8 @@
 
 
 int main(int argc, char *argv[]){
-        
-    int port_num;
-    if(argc != 2){
-      printf("Please provide a portnumber for the server.\n");
-      exit(127);
-    }
-    else if ((port_num = atoi(argv[1]) == 0)){
-      exit(127);
-    }
+
+    int port_num = 5003;
 
     int socket_desc, client_sock, client_size;
     struct sockaddr_in server_addr, client_addr;
@@ -53,7 +46,7 @@ int main(int argc, char *argv[]){
         return -1;
     }
     printf("\nListening for incoming connections.....\n");
-
+    do {
     // Accept an incoming connection:
     client_size = sizeof(client_addr);
     client_sock = accept(socket_desc, (struct sockaddr*)&client_addr, &client_size);
@@ -62,6 +55,7 @@ int main(int argc, char *argv[]){
         printf("Can't accept\n");
         return -1;
     }
+
     printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
     // Receive client's message:
@@ -69,7 +63,10 @@ int main(int argc, char *argv[]){
         printf("Couldn't receive\n");
         return -1;
     }
-    printf("Msg from client: %s\n", client_message);
+
+    for(int i = 0; i < 32; i++) {
+	    printf("%02x", client_message[i]);
+    }
 
     // Respond to client:
     strcpy(server_message, "This is the server's message.");
@@ -81,6 +78,7 @@ int main(int argc, char *argv[]){
 
     // Closing the socket:
     close(client_sock);
+    } while (1);
     close(socket_desc);
 
    return 0;
