@@ -7,8 +7,16 @@
 
 
 int main(int argc, char *argv[]){
+    if(argc != 2) {
+      printf("Please provide a Portnumber\n");
+      exit(132);
+    }
 
-    int port_num = 5003;
+    int port_num =atoi(argv[1]);
+    if (port_num < 1 || port_num > 65535){
+      printf("Invalid pport number.\n");
+      exit(132);
+    }
 
     int socket_desc, client_sock, client_size;
     struct sockaddr_in server_addr, client_addr;
@@ -67,7 +75,7 @@ int main(int argc, char *argv[]){
     for(int i = 0; i < 32; i++) {
 	    printf("%02x", client_message[i]);
     }
-
+    printf("\n");
     // Respond to client:
     strcpy(server_message, "This is the server's message.");
 
