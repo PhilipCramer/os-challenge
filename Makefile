@@ -7,7 +7,7 @@ CC = gcc
 #  -O3		tells the compiler to utilize optimization level 3
 
 SRC = $(shell ls ./src/*.c)
-CFLAGS = -g -Wall -O3
+CFLAGS = -Wall -O3 -lcrypto
 
 # the build target executable:
 TARGET = server.out
@@ -16,6 +16,9 @@ all: $(TARGET)
 
 $(TARGET): $(SRC)
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET)
+
+debug:
+	$(CC) $(CFLAGS) -g $(SRC) -o $(TARGET)
 
 clean:
 	$(RM) $(TARGET)
