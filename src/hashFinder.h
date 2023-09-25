@@ -4,4 +4,4 @@
 #include <stdio.h>
 #include <string.h>
 
-int64_t findHash(char hashToFind[], int64_t start, int64_t stop);
+int64_t findHash(unsigned char hashToFind[], int64_t start, int64_t stop);
