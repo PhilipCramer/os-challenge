@@ -4,6 +4,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "messages.h"
+#include "hashFinder.h"
 
 
 int main(int argc, char *argv[]){
@@ -20,7 +22,7 @@ int main(int argc, char *argv[]){
 
     int socket_desc, client_sock, client_size;
     struct sockaddr_in server_addr, client_addr;
-    char server_message[2000], client_message[2000];
+    unsigned char server_message[PACKET_RESPONSE_SIZE], client_message[PACKET_REQUEST_SIZE], recvHash[SHA256_DIGEST_LENGTH];
 
     // Clean buffers:
     memset(server_message, '\0', sizeof(server_message));
@@ -64,22 +66,30 @@ int main(int argc, char *argv[]){
         return -1;
     }
 
-    printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+//    printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
     // Receive client's message:
     if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
         printf("Couldn't receive\n");
         return -1;
     }
-
+    
     for(int i = 0; i < 32; i++) {
-	    printf("%02x", client_message[i]);
+      recvHash[i] = client_message[i];
+	    //printf("%02x", client_message[i]);
     }
-    printf("\n");
     // Respond to client:
-    strcpy(server_message, "This is the server's message.");
+    int64_t start, end;
+    memcpy(recvHash,client_message,SHA256_DIGEST_LENGTH);
+    memcpy(&start,client_message + PACKET_REQUEST_START_OFFSET,sizeof(int64_t));
+    memcpy(&end,client_message + PACKET_REQUEST_END_OFFSET,sizeof(int64_t));
+    int64_t response = findHash(recvHash, be64toh(start), be64toh(end));
 
-    if (send(client_sock, server_message, strlen(server_message), 0) < 0){
+    response = htobe64(response);
+
+    memcpy(server_message, &response, PACKET_RESPONSE_SIZE);
+
+    if (send(client_sock, server_message, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
         printf("Can't send\n");
         return -1;
     }
@@ -87,6 +97,7 @@ int main(int argc, char *argv[]){
     // Closing the socket:
     close(client_sock);
     } while (1);
+    shutdown(socket_desc, 2);
     close(socket_desc);
 
    return 0;
