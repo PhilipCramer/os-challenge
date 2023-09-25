@@ -14,7 +14,7 @@ int main(int argc, char *argv[]){
 
     int port_num =atoi(argv[1]);
     if (port_num < 1 || port_num > 65535){
-      printf("Invalid port number.\n");
+      printf("Invalid pport number.\n");
       exit(132);
     }
 
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]){
     }
     printf("\n");
     // Respond to client:
-    strcpy(server_message, "a000");
+    strcpy(server_message, "This is the server's message.");
 
     if (send(client_sock, server_message, strlen(server_message), 0) < 0){
         printf("Can't send\n");
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]){
 
     // Closing the socket:
     close(client_sock);
-    } while (fgets(NULL,1,stdin) == NULL);
+    } while (1);
     close(socket_desc);
 
    return 0;
