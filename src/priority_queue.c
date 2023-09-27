@@ -8,21 +8,27 @@ int initialize_queue(prio_queue_t *reference){
   if (arr == NULL) return 1;
   reference->array = arr;
   reference->size = 0;
+  pthread_mutex_init(&(reference->mutex), NULL); 
   reference->last = INITIAL_QUEUE_SIZE;
   return 0;
 }
 int enqueue(prio_queue_t *reference, void *data, int priority){
+  pthread_mutex_lock(&(reference->mutex));
   if(reference->size == reference->last - 1){
     qelement_t * new_array = realloc(reference->array,reference->last * sizeof(qelement_t));
     if(new_array != NULL){
       reference->array = new_array;
       reference->last *= 2;
-    } else return 1; 
+    } else {
+        return 1;
+        pthread_mutex_unlock(&(reference->mutex));
+      }
   }
   reference->size++;
   reference->array[reference->size].element = data;
   reference->array[reference->size].priority = priority;
   bubbleUp(reference,reference->size);
+  pthread_mutex_unlock(&(reference->mutex));
   return 0;
 }
 void bubbleUp(prio_queue_t *reference, int pos){
@@ -38,6 +44,7 @@ void bubbleUp(prio_queue_t *reference, int pos){
   }
 }
 void *dequeue(prio_queue_t *reference){
+  pthread_mutex_lock(&(reference->mutex))
   qelement_t *array = reference->array;
   void *res = array[1].element;
   array[1] = array[reference->size];
@@ -52,6 +59,7 @@ void *dequeue(prio_queue_t *reference){
   }
 
   bubbleDown(reference, 1);
+  pthread_mutex_unlock(&(reference->mutex));
 
   return res;
 }
@@ -76,8 +84,13 @@ void bubbleDown(prio_queue_t *reference, int pos){
 }
 
 int destroy_queue(prio_queue_t * reference){
+  pthread_mutex_lock(&(reference->mutex));
   if(reference->size == 0){
     free(reference->array);
+    pthread_mutex_unlock(&(reference->mutex));
     return 0;
-  }else return 1;
+  }else{
+    pthread_mutex_unlock(&(reference->mutex))
+    return 1;
+  }
 }

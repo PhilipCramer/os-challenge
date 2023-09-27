@@ -1,4 +1,5 @@
 #include<stdlib.h>
+#include <pthread.h>
 
 typedef struct {
   void * element;
@@ -6,10 +7,11 @@ typedef struct {
 } qelement_t;
 
 typedef struct {
+  pthread_mutex_t mutex;
   int size;
   int last;
   qelement_t *array;
-}prio_queue_t;
+} prio_queue_t;
 
 int initialize_queue(prio_queue_t *reference); 
 int enqueue(prio_queue_t *reference, void *data, int priority);
