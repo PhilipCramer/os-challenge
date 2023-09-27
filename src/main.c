@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "request.h"
 
 
 int main(int argc, char *argv[]){
@@ -55,37 +56,37 @@ int main(int argc, char *argv[]){
     }
     printf("\nListening for incoming connections.....\n");
     do {
-    // Accept an incoming connection:
-    client_size = sizeof(client_addr);
-    client_sock = accept(socket_desc, (struct sockaddr*)&client_addr, &client_size);
+        // Accept an incoming connection:
+        client_size = sizeof(client_addr);
+        client_sock = accept(socket_desc, (struct sockaddr*)&client_addr, &client_size);
 
-    if (client_sock < 0){
-        printf("Can't accept\n");
-        return -1;
-    }
+        if (client_sock < 0){
+            printf("Can't accept\n");
+            return -1;
+        }
 
-    printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-    // Receive client's message:
-    if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
-        printf("Couldn't receive\n");
-        return -1;
-    }
+        // Receive client's message:
+        if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
+            printf("Couldn't receive\n");
+            return -1;
+        }
 
-    for(int i = 0; i < 32; i++) {
-	    printf("%02x", client_message[i]);
-    }
-    printf("\n");
-    // Respond to client:
-    strcpy(server_message, "This is the server's message.");
+        Body* body = createBody(client_message);
 
-    if (send(client_sock, server_message, strlen(server_message), 0) < 0){
-        printf("Can't send\n");
-        return -1;
-    }
+        printf("start: %jd\n", body->start);
+        printf("\n");
+        // Respond to client:
+        strcpy(server_message, "This is the server's message.");
 
-    // Closing the socket:
-    close(client_sock);
+        if (send(client_sock, server_message, strlen(server_message), 0) < 0){
+            printf("Can't send\n");
+            return -1;
+        }
+
+        // Closing the socket:
+        close(client_sock);
     } while (1);
     close(socket_desc);
 
