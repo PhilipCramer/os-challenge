@@ -15,10 +15,10 @@ TARGET = server.out
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CC) $(CFLAGS) $(SRC) -o $(TARGET)
+	$(CC) $(SRC) -o $(TARGET) -s $(CFLAGS)
 
 debug:
-	$(CC) $(CFLAGS) -g $(SRC) -o $(TARGET)
+	$(CC) $(SRC) -o $(TARGET) -g $(CFLAGS)
 
 clean:
 	$(RM) $(TARGET)
