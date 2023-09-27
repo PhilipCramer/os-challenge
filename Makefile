@@ -15,7 +15,7 @@ TARGET = server.out
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CC) $(CFLAGS) $(SRC) -o $(TARGET)
+	$(CC) $(CFLAGS) -s $(SRC) -o $(TARGET)
 
 debug:
 	$(CC) $(CFLAGS) -g $(SRC) -o $(TARGET)
