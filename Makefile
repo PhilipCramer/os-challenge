@@ -10,7 +10,7 @@ SRC = $(shell ls ./src/*.c)
 CFLAGS = -Wall -O3 -lcrypto
 
 # the build target executable:
-TARGET = server.out
+TARGET = server
 
 all: $(TARGET)
 

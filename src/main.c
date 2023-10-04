@@ -51,7 +51,7 @@ int main(int argc, char *argv[]){
     printf("Done with binding\n");
 
     // Listen for clients:
-    if(listen(socket_desc, 1) < 0){
+    if(listen(socket_desc, 128) < 0){
         printf("Error while listening\n");
         return -1;
     }
@@ -74,15 +74,11 @@ int main(int argc, char *argv[]){
         return -1;
     }
     
-    for(int i = 0; i < 32; i++) {
-      recvHash[i] = client_message[i];
-	    //printf("%02x", client_message[i]);
-    }
     // Respond to client:
     int64_t start, end;
     memcpy(recvHash,client_message,SHA256_DIGEST_LENGTH);
-    memcpy(&start,client_message + PACKET_REQUEST_START_OFFSET,sizeof(int64_t));
-    memcpy(&end,client_message + PACKET_REQUEST_END_OFFSET,sizeof(int64_t));
+    memcpy(&start,client_message + PACKET_REQUEST_START_OFFSET,sizeof(uint64_t));
+    memcpy(&end,client_message + PACKET_REQUEST_END_OFFSET,sizeof(uint64_t));
     int64_t response = findHash(recvHash, be64toh(start), be64toh(end));
 
     response = htobe64(response);
