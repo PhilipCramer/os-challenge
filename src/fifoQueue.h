@@ -4,9 +4,9 @@
 
 #ifndef OS_CHALLENGE_GROUP_08_FIFOQOUE_H
 #define OS_CHALLENGE_GROUP_08_FIFOQOUE_H
-enqueue(request* conection, fifo* queue) ;
+void enqueue(request* connection, fifo* queue) ;
 void* dequeue(fifo* queue);
-bool isEmplty(fifo* queue);
+bool isEmpty(fifo* queue);
 
 typedef struct request {
     int clientSocket;

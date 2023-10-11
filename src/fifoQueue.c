@@ -14,7 +14,7 @@ fifo* initialize(int size) {
     return queue;
 }
 
-enqueue(request* conection, fifo* queue) {
+void enqueue(request* conection, fifo* queue) {
     queue->requests[queue->tail] = conection;
     queue->tail = queue->tail + 1;
 }
@@ -28,6 +28,6 @@ void* dequeue(fifo* queue) {
 }
 
 
-bool isEmplty(fifo* queue) {
+bool isEmpty(fifo* queue) {
     return queue->index == queue->tail;
 }
