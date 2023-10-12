@@ -14,17 +14,19 @@ fifo* initialize(int size) {
     return queue;
 }
 
-void enqueue(request* conection, fifo* queue) {
-    queue->requests[queue->tail] = conection;
+void enqueue(int client_socket, fifo* queue) {
+    request *request = malloc(sizeof(request));
+    request->clientSocket = client;
+    queue->requests[queue->tail] = *request;
     queue->tail = queue->tail + 1;
 }
 
 
-void* dequeue(fifo* queue) {
+request dequeue(fifo* queue) {
     request current = queue->requests[queue->index];
     queue->requests[queue->index] = NULL;
     queue->index++;
-    return request;
+    return current;
 }
 
 
