@@ -1,15 +1,19 @@
-#include<stdlib.h>
+#include <stdlib.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <time.h>
 
-typedef struct {
-  void * element;
-  int priority;
+typedef struct queue_element {
+  void * data;
+  long priority;
 } qelement_t;
 
-typedef struct {
-  pthread_mutex_t mutex;
+typedef struct priority_queue {
+  pthread_mutex_t lock;
+  pthread_cond_t cond;
   int size;
   int last;
+  //struct timespec queue_time;
   qelement_t *array;
 } prio_queue_t;
 
@@ -19,5 +23,4 @@ void bubbleUp(prio_queue_t *reference, int pos);
 void bubbleDown(prio_queue_t *reference, int pos);
 void *dequeue(prio_queue_t *reference);
 int destroy_queue(prio_queue_t * reference);
-void printQ(prio_queue_t *reference);
 
