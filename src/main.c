@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "bits/pthreadtypes.h"
 #include "messages.h"
 #include "hashFinder.h"
 #include "fifoQueue.h"
@@ -13,15 +14,23 @@
 typedef struct {
     int port_number;
     fifo_t *queue;
-    sem_t semaphore;
+    pthread_cond_t queue_cond;
+    pthread_mutex_t queue_lock; 
 } params_t;
+
+typedef struct {
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    uint64_t start;
+    uint64_t end;
+    unsigned int client;
+} task_t;
 
 void *producer(void *parameters){
     params_t *params = parameters;
     fifo_t *queue = params->queue;
-    int socket_desc, client_sock, client_size;
+    unsigned int socket_desc, client_size, client_sock;
     struct sockaddr_in server_addr, client_addr;
-    unsigned char server_message[PACKET_RESPONSE_SIZE], client_message[PACKET_REQUEST_SIZE], recvHash[SHA256_DIGEST_LENGTH];
+    unsigned char client_message[PACKET_REQUEST_SIZE];
 
 
 
@@ -61,47 +70,55 @@ void *producer(void *parameters){
             printf("Can't accept\n");
             exit(1);
         }
+        printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
+            printf("Couldn't receive\n");
+            exit(1);
+        }
 
-//    printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-        enqueue(client_sock,queue);
+        //Parsing of received message
+        task_t * received_task = malloc(sizeof(task_t));
+        memcpy(&(received_task->hash), client_message, SHA256_DIGEST_LENGTH);
+        memcpy(&(received_task->start), client_message + PACKET_REQUEST_START_OFFSET, sizeof(uint64_t));
+        memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
+        memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
+
+        pthread_mutex_lock(&(params->queue_lock));
+        enqueue((void *) received_task, queue);
+        pthread_mutex_unlock(&(params->queue_lock));
+        pthread_cond_signal(&(params->queue_cond));
     }
 }
 
 void* consumer(void * parameter){
     params_t* parameters = parameter;
     fifo_t *queue = parameters->queue;
-    sem_t semaphore = parameters->semaphore;
-    int client_sock;
-    unsigned char server_message[PACKET_RESPONSE_SIZE], client_message[PACKET_REQUEST_SIZE], recvHash[SHA256_DIGEST_LENGTH];
+    task_t* current_task;
+    unsigned char server_message[PACKET_RESPONSE_SIZE];
 
-    sem_wait(&semaphore);
-
-    /*
-    client_sock = dequeue(queue).clientSocket;
-    if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
-        printf("Couldn't receive\n");
-        return -1;
-    }
+    for(;;){
+      pthread_mutex_lock(&(parameters->queue_lock));
+      if(isEmpty(queue)) pthread_cond_wait(&(parameters->queue_cond), &(parameters->queue_lock));
+      current_task = (task_t *) dequeue(queue);
+      pthread_mutex_unlock(&(parameters->queue_lock));
 
     // Respond to client:
-    int64_t start, end;
-    memcpy(recvHash,client_message,SHA256_DIGEST_LENGTH);
-    memcpy(&start,client_message + PACKET_REQUEST_START_OFFSET,sizeof(uint64_t));
-    memcpy(&end,client_message + PACKET_REQUEST_END_OFFSET,sizeof(uint64_t));
-    int64_t response = findHash(recvHash, be64toh(start), be64toh(end));
+    uint64_t response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
 
     response = htobe64(response);
 
-    memcpy(server_message, &response, PACKET_RESPONSE_SIZE);
+    //memcpy(server_message, &response, PACKET_RESPONSE_SIZE);
 
-    if (send(client_sock, server_message, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
+    if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
         printf("Can't send\n");
-        return -1;
+        exit(1);
     }
 
     // Closing the socket:
-    close(client_sock);
-     */
+    close(current_task->client);
+    free(current_task);
+    
+    }
 
 }
 
@@ -117,22 +134,22 @@ int main(int argc, char *argv[]){
       exit(132);
     }
     pthread_t consumer_thread;
-
     pthread_t producer_thread;
 
-    sem_t semaphore;
 
     fifo_t *queue = initialize(1000);
 
-    sem_init(&semaphore, 0, 0);
 
     params_t *param = malloc(sizeof(params_t));
     param->queue = queue;
-    param->semaphore = semaphore;
     param->port_number = port_num;
+    pthread_cond_init(&(param->queue_cond), NULL);
+    pthread_mutex_init(&(param->queue_lock), NULL);
+
+
     pthread_create(&producer_thread,NULL,producer,(void *) param);
     pthread_create(&consumer_thread,NULL,consumer,(void *) param);
-
+    
     pthread_join(producer_thread, NULL);
     pthread_join(consumer_thread, NULL);
 
