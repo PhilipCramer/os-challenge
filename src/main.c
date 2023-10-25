@@ -11,6 +11,7 @@
 #include "semaphore.h"
 
 typedef struct params{
+    int port_number;
     fifo *queue;
     sem_t semaphore;
 } params;
@@ -38,7 +39,7 @@ void *producer(void *parameters){
 
     // Set port and IP:
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port_num);
+    server_addr.sin_port = htons(params->port_number);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // Bind to the set port and IP:
@@ -76,9 +77,6 @@ void* consumer(void * parameter){
     int client_sock;
     unsigned char server_message[PACKET_RESPONSE_SIZE], client_message[PACKET_REQUEST_SIZE], recvHash[SHA256_DIGEST_LENGTH];
 
-    // Clean buffers:
-    memset(server_message, '\0', sizeof(server_message));
-    memset(client_message, '\0', sizeof(client_message));
     sem_wait(&semaphore);
 
     /*
@@ -111,6 +109,16 @@ void* consumer(void * parameter){
 }
 
 int main(int argc, char *argv[]){
+    if(argc != 2) {
+      printf("Please provide a Portnumber\n");
+      exit(132);
+    }
+
+    int port_num =atoi(argv[1]);
+    if (port_num < 1 || port_num > 65535){
+      printf("Invalid pport number.\n");
+      exit(132);
+    }
     pthread_t consumer;
 
     pthread_t producer;
@@ -124,6 +132,7 @@ int main(int argc, char *argv[]){
     params *param = malloc(sizeof(params));
     param->queue = queue;
     param->semaphore = semaphore;
+    param->port_number = port_num;
     pthread_create(&producer,NULL,producer,(void *) param);
     pthread_create(&consumer,NULL,consumer,(void *) param);
 
