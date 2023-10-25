@@ -65,6 +65,7 @@ void *dequeue(prio_queue_t *reference){
     //pthread_mutex_unlock(&(reference->mutex));
     if(pthread_cond_wait(&(reference->cond), &(reference->lock)) != 0) 
       return NULL;
+    if (reference->size == 0) return NULL;
   }
 
   if((reference->size == reference->last / 4) && (reference->last / 4 > INITIAL_QUEUE_SIZE)){
@@ -109,10 +110,10 @@ void bubbleDown(prio_queue_t *reference, int pos){
 }
 
 int destroy_queue(prio_queue_t * reference){
-  if(pthread_mutex_trylock(&(reference->lock)) != 0){
+  /*if(pthread_mutex_trylock(&(reference->lock)) != 0){
     printf("Queue is locked...\n");
     return 1;
-  }else if (reference->size == 0){
+  }else*/ if (reference->size != 0){
     printf("Queue isn't empty...\n");
     return 1;
   }else{
