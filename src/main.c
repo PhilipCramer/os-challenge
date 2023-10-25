@@ -122,7 +122,7 @@ int main(int argc, char *argv[]){
 
     sem_t semaphore;
 
-    fifo_t *queue = initialize(16);
+    fifo_t *queue = initialize(1000);
 
     sem_init(&semaphore, 0, 0);
 
