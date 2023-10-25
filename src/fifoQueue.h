@@ -8,20 +8,20 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-typedef struct request {
-    int clientSocket;
-}request;
+typedef struct {
+    int client_socket;
+} request_t;
 
-typedef struct fifo {
+typedef struct {
     int index;
     int tail;
     int size;
-    request* requests;
-}fifo;
+    request_t* requests;
+} fifo_t;
 
-void enqueue(int client_socket, fifo* queue) ;
-request dequeue(fifo* queue);
-bool isEmpty(fifo* queue);
-fifo* initialize(int size);
+void enqueue(int client_socket, fifo_t* queue) ;
+request_t dequeue(fifo_t* queue);
+bool isEmpty(fifo_t* queue);
+fifo_t* initialize(int size);
 
 #endif //OS_CHALLENGE_GROUP_08_FIFOQOUE_H
