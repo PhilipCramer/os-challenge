@@ -10,15 +10,15 @@
 #include "fifoQueue.h"
 #include "semaphore.h"
 
-typedef struct params{
+typedef struct {
     int port_number;
-    fifo *queue;
+    fifo_t *queue;
     sem_t semaphore;
-} params;
+} params_t;
 
 void *producer(void *parameters){
-    params *params = parameters;
-    fifo *queue = params->queue;
+    params_t *params = parameters;
+    fifo_t *queue = params->queue;
     int socket_desc, client_sock, client_size;
     struct sockaddr_in server_addr, client_addr;
     unsigned char server_message[PACKET_RESPONSE_SIZE], client_message[PACKET_REQUEST_SIZE], recvHash[SHA256_DIGEST_LENGTH];
@@ -68,8 +68,8 @@ void *producer(void *parameters){
 }
 
 void* consumer(void * parameter){
-    params* parameters = parameter;
-    fifo *queue = parameters->queue;
+    params_t* parameters = parameter;
+    fifo_t *queue = parameters->queue;
     sem_t semaphore = parameters->semaphore;
     int client_sock;
     unsigned char server_message[PACKET_RESPONSE_SIZE], client_message[PACKET_REQUEST_SIZE], recvHash[SHA256_DIGEST_LENGTH];
@@ -122,11 +122,11 @@ int main(int argc, char *argv[]){
 
     sem_t semaphore;
 
-    fifo *queue = initialize(16);
+    fifo_t *queue = initialize(16);
 
     sem_init(&semaphore, 0, 0);
 
-    params *param = malloc(sizeof(params));
+    params_t *param = malloc(sizeof(params_t));
     param->queue = queue;
     param->semaphore = semaphore;
     param->port_number = port_num;
