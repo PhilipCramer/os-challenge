@@ -6,7 +6,7 @@
 
 fifo_t* initialize(int size) {
     fifo_t* queue = malloc(sizeof(fifo_t));
-    request_t** ar = calloc(size, sizeof(request_t*));
+    void** ar = calloc(size, sizeof(void*));
     queue->head = 0;
     queue->tail = 0;
     queue->size = size;
@@ -14,17 +14,15 @@ fifo_t* initialize(int size) {
     return queue;
 }
 
-void enqueue(int client_sock, fifo_t* queue) {
-    request_t *request = malloc(sizeof(request_t));
-    request->client_socket = client_sock;
-    queue->requests[queue->tail] = request;
+void enqueue(void * data, fifo_t* queue) {
+    queue->requests[queue->tail] = data;
     queue->tail++;
     if(queue->tail == queue->size) queue->tail = 0;
 }
 
 
-request_t* dequeue(fifo_t* queue) {
-    request_t *current = queue->requests[queue->head];
+void * dequeue(fifo_t* queue) {
+    void * current = queue->requests[queue->head];
     queue->requests[queue->head] = NULL;
     queue->head++;
     if(queue->head == queue->size) queue->head = 0;

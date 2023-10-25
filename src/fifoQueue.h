@@ -9,18 +9,14 @@
 #include <stdlib.h>
 
 typedef struct {
-    int client_socket;
-} request_t;
-
-typedef struct {
     int head;
     int tail;
     int size;
-    request_t** requests;
+    void** requests;
 } fifo_t;
 
-void enqueue(int client_socket, fifo_t* queue) ;
-request_t* dequeue(fifo_t* queue);
+void enqueue(void * data, fifo_t* queue) ;
+void* dequeue(fifo_t* queue);
 bool isEmpty(fifo_t* queue);
 fifo_t* initialize(int size);
 
