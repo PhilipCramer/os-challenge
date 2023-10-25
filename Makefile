@@ -7,18 +7,19 @@ CC = gcc
 #  -O3		tells the compiler to utilize optimization level 3
 
 SRC = $(shell ls ./src/*.c)
-CFLAGS = -Wall -O3 -lcrypto
+HDR = $(shell ls ./src/*.h)
+CFLAGS = -O3 -lcrypto
 
 # the build target executable:
-TARGET = server
+TARGET = server.out
 
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CC) $(SRC) -o $(TARGET) -s $(CFLAGS)
+	$(CC) $(SRC) $(HDR) -o $(TARGET) -s $(CFLAGS)
 
 debug:
-	$(CC) $(SRC) -o $(TARGET) -g $(CFLAGS)
+	$(CC) $(SRC) $(HDR) -o $(TARGET) -g -Wall -pedantic $(CFLAGS)
 
 clean:
 	$(RM) $(TARGET)
