@@ -23,9 +23,6 @@ void *producer(void *parameters){
     struct sockaddr_in server_addr, client_addr;
     unsigned char server_message[PACKET_RESPONSE_SIZE], client_message[PACKET_REQUEST_SIZE], recvHash[SHA256_DIGEST_LENGTH];
 
-    // Clean buffers:
-    memset(server_message, '\0', sizeof(server_message));
-    memset(client_message, '\0', sizeof(client_message));
 
 
     // Create socket:
