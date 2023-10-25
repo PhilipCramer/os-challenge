@@ -6,6 +6,7 @@
 #define OS_CHALLENGE_GROUP_08_FIFOQOUE_H
 
 #include <stdbool.h>
+#include <stdlib.h>
 
 typedef struct request {
     int clientSocket;
