@@ -94,7 +94,6 @@ void* consumer(void * parameter){
     params_t* parameters = parameter;
     fifo_t *queue = parameters->queue;
     task_t* current_task;
-    unsigned char server_message[PACKET_RESPONSE_SIZE];
 
     for(;;){
       pthread_mutex_lock(&(parameters->queue_lock));
@@ -106,8 +105,6 @@ void* consumer(void * parameter){
     uint64_t response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
 
     response = htobe64(response);
-
-    //memcpy(server_message, &response, PACKET_RESPONSE_SIZE);
 
     if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
         printf("Can't send\n");
@@ -152,6 +149,9 @@ int main(int argc, char *argv[]){
     
     pthread_join(producer_thread, NULL);
     pthread_join(consumer_thread, NULL);
+
+    free(param);
+    free(queue->requests);
 
    return 0;
 }
