@@ -116,9 +116,9 @@ int main(int argc, char *argv[]){
       printf("Invalid pport number.\n");
       exit(132);
     }
-    pthread_t consumer;
+    pthread_t consumer_thread;
 
-    pthread_t producer;
+    pthread_t producer_thread;
 
     sem_t semaphore;
 
@@ -130,11 +130,11 @@ int main(int argc, char *argv[]){
     param->queue = queue;
     param->semaphore = semaphore;
     param->port_number = port_num;
-    pthread_create(&producer,NULL,producer,(void *) param);
-    pthread_create(&consumer,NULL,consumer,(void *) param);
+    pthread_create(&producer_thread,NULL,producer,(void *) param);
+    pthread_create(&consumer_thread,NULL,consumer,(void *) param);
 
-    pthread_join(producer, NULL);
-    pthread_join(consumer, NULL);
+    pthread_join(producer_thread, NULL);
+    pthread_join(consumer_thread, NULL);
 
    return 0;
 }
