@@ -30,7 +30,7 @@ void *producer(void *parameters){
 
     if(socket_desc < 0){
         printf("Error while creating socket\n");
-        return -1;
+        exit(1);
     }
     printf("Socket created successfully\n");
 
@@ -42,29 +42,29 @@ void *producer(void *parameters){
     // Bind to the set port and IP:
     if(bind(socket_desc, (struct sockaddr*)&server_addr, sizeof(server_addr))<0){
         printf("Couldn't bind to the port\n");
-        return -1;
+        exit(1);
     }
     printf("Done with binding\n");
 
     // Listen for clients:
     if(listen(socket_desc, 128) < 0){
         printf("Error while listening\n");
-        return -1;
+        exit(1);
     }
     printf("\nListening for incoming connections.....\n");
-    do {
+    for(;;){
         // Accept an incoming connection:
         client_size = sizeof(client_addr);
         client_sock = accept(socket_desc, (struct sockaddr *) &client_addr, &client_size);
 
         if (client_sock < 0) {
             printf("Can't accept\n");
-            return -1;
+            exit(1);
         }
 
 //    printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         enqueue(client_sock,queue);
-    }while(1);
+    }
 }
 
 void* consumer(void * parameter){
