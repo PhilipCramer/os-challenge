@@ -1,10 +1,10 @@
 #include "priority_queue.h"
 
-#define INITIAL_QUEUE_SIZE 16
+#define INITIAL_QUEUE_SIZE 128
 
 
 int initialize_queue(prio_queue_t *reference){
-  qelement_t *arr = calloc(10, sizeof(qelement_t));
+  qelement_t *arr = calloc(INITIAL_QUEUE_SIZE, sizeof(qelement_t));
   if (arr == NULL) return 1;
   reference->array = arr;
   reference->size = 0;
@@ -13,7 +13,7 @@ int initialize_queue(prio_queue_t *reference){
 }
 int enqueue(prio_queue_t *reference, void *data, int priority){
   if(reference->size == reference->last - 1){
-    qelement_t * new_array = realloc(reference->array,reference->last * sizeof(qelement_t));
+    qelement_t * new_array = realloc(reference->array,reference->last * sizeof(qelement_t) * 2);
     if(new_array != NULL){
       reference->array = new_array;
       reference->last *= 2;
@@ -29,7 +29,7 @@ void bubbleUp(prio_queue_t *reference, int pos){
   int lookup = pos/2;
   int current = pos;
   qelement_t *array = reference->array;
-  while(array[lookup].priority < array[current].priority && current > 1){
+  while(array[current].priority < array[lookup].priority && current > 1){
     qelement_t temp = array[lookup];
     array[lookup] = array[current];
     array[current] = temp;
@@ -43,8 +43,8 @@ void *dequeue(prio_queue_t *reference){
   array[1] = array[reference->size];
   reference->size--;
 
-  if(reference->size == reference->last / 4){
-    qelement_t * new_array = realloc(reference->array,(reference->last * sizeof(qelement_t))/2);
+  if(reference->size == 0){
+    qelement_t * new_array = realloc(reference->array, INITIAL_QUEUE_SIZE * sizeof(qelement_t));
     if(new_array != NULL){
       reference->array = new_array;
       reference->last /= 2;
