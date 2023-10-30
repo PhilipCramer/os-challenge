@@ -1,11 +1,11 @@
 #include "hashFinder.h"
 
-int64_t findHash(unsigned char hashToFind[], int64_t start, int64_t stop) {
-  unsigned char *foundHash;
-  int64_t current;
+uint64_t find_hash(unsigned char hash_to_find[], uint64_t start, uint64_t stop) {
+  unsigned char *found_hash;
+  uint64_t current;
   for(current = start; current < stop; current++){
-    foundHash = SHA256((const unsigned char *) &current, sizeof(current), NULL);
-    if (memcmp(hashToFind, foundHash, SHA256_DIGEST_LENGTH) == 0){
+    found_hash = SHA256((const unsigned char *) &current, sizeof(current), NULL);
+    if (memcmp(hash_to_find, found_hash, SHA256_DIGEST_LENGTH) == 0){
       return current;
     }
   }
