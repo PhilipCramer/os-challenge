@@ -8,7 +8,7 @@ CC = gcc
 
 SRC = $(shell ls ./src/*.c)
 HDR = $(shell ls ./src/*.h)
-CFLAGS = -O3 -lcrypto
+CFLAGS = -O3 -lcrypto -lpthread
 
 # the build target executable:
 TARGET = server.out
