@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,16 +7,15 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "bits/pthreadtypes.h"
+#include "endian.h"
 #include "messages.h"
 #include "hashFinder.h"
-#include "fifoQueue.h"
+#include "priority_queue.h"
 #include "semaphore.h"
 
 typedef struct {
     int port_number;
-    fifo_t *queue;
-    pthread_cond_t queue_cond;
-    pthread_mutex_t queue_lock; 
+    prio_queue_t *queue;
 } params_t;
 
 typedef struct {
@@ -25,9 +25,17 @@ typedef struct {
     unsigned int client;
 } task_t;
 
+uint64_t assign_priotiry(task_t * task, char received_priority){
+  uint64_t task_difficulty = task->end - task->start; 
+
+  uint64_t result = task_difficulty / received_priority;
+
+  return result;
+}
+
 void *producer(void *parameters){
     params_t *params = parameters;
-    fifo_t *queue = params->queue;
+    prio_queue_t *queue = params->queue;
     unsigned int socket_desc, client_size, client_sock;
     struct sockaddr_in server_addr, client_addr;
     unsigned char client_message[PACKET_REQUEST_SIZE];
@@ -80,41 +88,37 @@ void *producer(void *parameters){
         task_t * received_task = malloc(sizeof(task_t));
         memcpy(&(received_task->hash), client_message, SHA256_DIGEST_LENGTH);
         memcpy(&(received_task->start), client_message + PACKET_REQUEST_START_OFFSET, sizeof(uint64_t));
+        received_task->start = be64toh(received_task->start);
         memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
+        received_task->end = be64toh(received_task->end);
         memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
-
-        pthread_mutex_lock(&(params->queue_lock));
-        enqueue((void *) received_task, queue);
-        pthread_mutex_unlock(&(params->queue_lock));
-        pthread_cond_signal(&(params->queue_cond));
+        uint64_t task_priority = assign_priotiry(received_task, client_message[PACKET_REQUEST_PRIO_OFFSET]);
+        enqueue(queue , (void *) received_task, task_priority);
     }
 }
 
 void* consumer(void * parameter){
     params_t* parameters = parameter;
-    fifo_t *queue = parameters->queue;
+    prio_queue_t *queue = parameters->queue;
     task_t* current_task;
 
     for(;;){
-      pthread_mutex_lock(&(parameters->queue_lock));
-      if(isEmpty(queue)) pthread_cond_wait(&(parameters->queue_cond), &(parameters->queue_lock));
       current_task = (task_t *) dequeue(queue);
-      pthread_mutex_unlock(&(parameters->queue_lock));
+      if(current_task){
+        // Respond to client:
+        uint64_t response = find_hash(current_task->hash, current_task->start, current_task->end);
 
-    // Respond to client:
-    uint64_t response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
+        response = htobe64(response);
 
-    response = htobe64(response);
+        if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
+            printf("Can't send\n");
+            exit(1);
+        }
 
-    if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
-        printf("Can't send\n");
-        exit(1);
-    }
-
-    // Closing the socket:
-    close(current_task->client);
-    free(current_task);
-    
+        // Closing the socket:
+        close(current_task->client);
+        free(current_task);
+      }
     }
 
 }
@@ -134,14 +138,13 @@ int main(int argc, char *argv[]){
     pthread_t producer_thread;
 
 
-    fifo_t *queue = initialize(1000);
+    prio_queue_t *queue = malloc(sizeof(prio_queue_t));
+    initialize_queue(queue);
 
 
     params_t *param = malloc(sizeof(params_t));
     param->queue = queue;
     param->port_number = port_num;
-    pthread_cond_init(&(param->queue_cond), NULL);
-    pthread_mutex_init(&(param->queue_lock), NULL);
 
 
     pthread_create(&producer_thread,NULL,producer,(void *) param);
@@ -151,8 +154,9 @@ int main(int argc, char *argv[]){
     pthread_join(consumer_thread, NULL);
 
     free(param);
-    free(queue->requests);
-
+    destroy_queue(queue);
+    free(queue);
+  
    return 0;
 }
 
