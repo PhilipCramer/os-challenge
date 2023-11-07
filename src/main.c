@@ -10,6 +10,9 @@
 #include "hashFinder.h"
 #include "fifoQueue.h"
 #include "semaphore.h"
+#include "cache.h"
+
+
 
 typedef struct {
     int port_number;
@@ -83,10 +86,23 @@ void *producer(void *parameters){
         memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
         memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
 
-        pthread_mutex_lock(&(params->queue_lock));
-        enqueue((void *) received_task, queue);
-        pthread_mutex_unlock(&(params->queue_lock));
-        pthread_cond_signal(&(params->queue_cond));
+        uint64_t cached_value = search(received_task->hash);
+        if (cached_value > 0) {
+            printf("Found a cached file for value %" PRIu64 "\r\n", cached_value);
+            cached_value = htobe64(cached_value);
+            if (send(client_sock, &cached_value, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE) {
+                printf("Can't send\n");
+                exit(1);
+            }
+            // Closing the socket:
+            close(client_sock);
+            free(received_task);
+        } else {
+            pthread_mutex_lock(&(params->queue_lock));
+            enqueue((void *) received_task, queue);
+            pthread_mutex_unlock(&(params->queue_lock));
+            pthread_cond_signal(&(params->queue_cond));
+        }
     }
 }
 
@@ -96,27 +112,28 @@ void* consumer(void * parameter){
     task_t* current_task;
 
     for(;;){
-      pthread_mutex_lock(&(parameters->queue_lock));
-      if(isEmpty(queue)) pthread_cond_wait(&(parameters->queue_cond), &(parameters->queue_lock));
-      current_task = (task_t *) dequeue(queue);
-      pthread_mutex_unlock(&(parameters->queue_lock));
+        pthread_mutex_lock(&(parameters->queue_lock));
+        if(isEmpty(queue)) pthread_cond_wait(&(parameters->queue_cond), &(parameters->queue_lock));
+        current_task = (task_t *) dequeue(queue);
+        pthread_mutex_unlock(&(parameters->queue_lock));
+        uint64_t response = search(current_task->hash);
+        if (response <= 0) {
+            // Respond to client:
+            response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
+            insert(current_task->hash, response);
+        }
 
-    // Respond to client:
-    uint64_t response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
-
-    response = htobe64(response);
-
-    if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
-        printf("Can't send\n");
-        exit(1);
-    }
+        response = htobe64(response);
+        if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
+            printf("Can't send\n");
+            exit(1);
+        }
 
     // Closing the socket:
     close(current_task->client);
     free(current_task);
     
     }
-
 }
 
 int main(int argc, char *argv[]){
@@ -127,9 +144,11 @@ int main(int argc, char *argv[]){
 
     int port_num =atoi(argv[1]);
     if (port_num < 1 || port_num > 65535){
-      printf("Invalid pport number.\n");
+      printf("Invalid port number.\n");
       exit(132);
     }
+
+
     pthread_t consumer_thread;
     pthread_t producer_thread;
 
@@ -140,6 +159,7 @@ int main(int argc, char *argv[]){
     params_t *param = malloc(sizeof(params_t));
     param->queue = queue;
     param->port_number = port_num;
+    initialize_cache();
     pthread_cond_init(&(param->queue_cond), NULL);
     pthread_mutex_init(&(param->queue_lock), NULL);
 
