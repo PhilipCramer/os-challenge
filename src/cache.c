@@ -40,13 +40,10 @@ uint64_t search(unsigned char *searchKey) {
 
     if (map[index] != NULL ) {
         Element *mapElement = map[index];
-        printf("Found element at index %" PRIu64 " with the value %" PRIu64 "\r\n", index, mapElement->value);
         while (mapElement != NULL) {
             int x = memcmp(mapElement->key, searchKey, 32);
-            printf("Comparing the values returned %d", x);
             if (x == 0) {
                 returnValue= mapElement->value;
-                printf("A key was found\r\n");
                 break;
             }
             mapElement = mapElement->next;

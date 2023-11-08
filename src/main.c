@@ -88,7 +88,7 @@ void *producer(void *parameters){
 
         uint64_t cached_value = search(received_task->hash);
         if (cached_value > 0) {
-            printf("Found a cached file for value %" PRIu64 "\r\n", cached_value);
+            printf("Found a cached file for value at the start! %" PRIu64 "\r\n", cached_value);
             cached_value = htobe64(cached_value);
             if (send(client_sock, &cached_value, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE) {
                 printf("Can't send\n");
@@ -121,6 +121,8 @@ void* consumer(void * parameter){
             // Respond to client:
             response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
             insert(current_task->hash, response);
+        } else {
+            printf("Found a value after dequeue\r\n");
         }
 
         response = htobe64(response);
