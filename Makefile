@@ -8,18 +8,22 @@ CC = gcc
 
 SRC = $(shell ls ./src/*.c)
 HDR = $(shell ls ./src/*.h)
-CFLAGS = -O3 -lcrypto
+#TSTSRC = $(shell ls ./src/test/*.c)
+CFLAGS = -O3 -lcrypto -lpthread
 
 # the build target executable:
 TARGET = server.out
-
+#TESTTARGET = tests.out
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CC) $(SRC) $(HDR) -o $(TARGET) -s $(CFLAGS)
+	$(CC) $(HDR) $(SRC) -o $(TARGET) -s $(CFLAGS)
 
 debug:
 	$(CC) $(SRC) $(HDR) -o $(TARGET) -g -Wall -pedantic $(CFLAGS)
 
 clean:
 	$(RM) $(TARGET)
+
+#test: $(TSTSRC)
+#	$(CC) $(TSTSRC) -o $(TESTTARGET) -s -g -Wall -pedantic $(CFLAGS)

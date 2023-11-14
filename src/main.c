@@ -11,6 +11,8 @@
 #include "fifoQueue.h"
 #include "semaphore.h"
 #include "cache.h"
+#include <time.h>
+
 
 
 
@@ -73,7 +75,7 @@ void *producer(void *parameters){
             printf("Can't accept\n");
             exit(1);
         }
-        printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        // printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
             printf("Couldn't receive\n");
             exit(1);
@@ -82,13 +84,11 @@ void *producer(void *parameters){
         //Parsing of received message
         task_t * received_task = malloc(sizeof(task_t));
         memcpy(&(received_task->hash), client_message, SHA256_DIGEST_LENGTH);
-        memcpy(&(received_task->start), client_message + PACKET_REQUEST_START_OFFSET, sizeof(uint64_t));
-        memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
-        memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
+
 
         uint64_t cached_value = search(received_task->hash);
         if (cached_value > 0) {
-            printf("Found a cached file for value at the start! %" PRIu64 "\r\n", cached_value);
+
             cached_value = htobe64(cached_value);
             if (send(client_sock, &cached_value, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE) {
                 printf("Can't send\n");
@@ -98,6 +98,9 @@ void *producer(void *parameters){
             close(client_sock);
             free(received_task);
         } else {
+            memcpy(&(received_task->start), client_message + PACKET_REQUEST_START_OFFSET, sizeof(uint64_t));
+            memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
+            memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
             pthread_mutex_lock(&(params->queue_lock));
             enqueue((void *) received_task, queue);
             pthread_mutex_unlock(&(params->queue_lock));
@@ -118,11 +121,11 @@ void* consumer(void * parameter){
         pthread_mutex_unlock(&(parameters->queue_lock));
         uint64_t response = search(current_task->hash);
         if (response <= 0) {
+
             // Respond to client:
             response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
+
             insert(current_task->hash, response);
-        } else {
-            printf("Found a value after dequeue\r\n");
         }
 
         response = htobe64(response);
@@ -134,7 +137,6 @@ void* consumer(void * parameter){
     // Closing the socket:
     close(current_task->client);
     free(current_task);
-    
     }
 }
 

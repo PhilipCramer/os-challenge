@@ -21,12 +21,9 @@ void insert(unsigned char* key, uint64_t value) {
     if (map[index] == NULL ) {
         element->next = NULL;
         map[index] = element;
-        printf("Inserted value %"PRIu64 " at root\r\n", value);
     } else {
         element->next = map[index];
         map[index] = element;
-
-        printf("Inserted value %"PRIu64 " nested\r\n", value);
     }
 
     pthread_mutex_unlock(&cache_lock);
@@ -69,5 +66,5 @@ void initialize_cache() {
         printf("Problem initializing memory");
     }
     pthread_mutex_init(&cache_lock, NULL);
-    printf("Cache okay\r\n");
+    // printf("Cache okay\r\n");
 }
