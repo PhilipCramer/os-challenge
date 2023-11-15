@@ -29,6 +29,25 @@ void insert(unsigned char* key, uint64_t value) {
     pthread_mutex_unlock(&cache_lock);
 }
 
+void free_cache() {
+    Element* tmp;
+
+    for (int i = 0; i < CACHESIZE; ++i) {
+        if (map[i] == NULL) {
+            continue;
+        }
+
+        while(map[i] != NULL) {
+            tmp = map[i]->next;
+            free(map[i]);
+            map[i] = tmp;
+        }
+    }
+
+    free(map);
+    free(cache_lock);
+}
+
 uint64_t search(unsigned char *searchKey) {
 
     uint64_t index = calculateIndex(searchKey);
