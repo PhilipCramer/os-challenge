@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,9 +7,10 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "bits/pthreadtypes.h"
+#include "endian.h"
 #include "messages.h"
 #include "hashFinder.h"
-#include "fifoQueue.h"
+#include "priority_queue.h"
 #include "semaphore.h"
 #include "cache.h"
 #include <time.h>
@@ -18,9 +20,7 @@
 
 typedef struct {
     int port_number;
-    fifo_t *queue;
-    pthread_cond_t queue_cond;
-    pthread_mutex_t queue_lock; 
+    prio_queue_t *queue;
 } params_t;
 
 typedef struct {
@@ -30,9 +30,10 @@ typedef struct {
     unsigned int client;
 } task_t;
 
+
 void *producer(void *parameters){
     params_t *params = parameters;
-    fifo_t *queue = params->queue;
+    prio_queue_t *queue = params->queue;
     unsigned int socket_desc, client_size, client_sock;
     struct sockaddr_in server_addr, client_addr;
     unsigned char client_message[PACKET_REQUEST_SIZE];
@@ -65,7 +66,7 @@ void *producer(void *parameters){
         printf("Error while listening\n");
         exit(1);
     }
-    printf("\nListening for incoming connections.....\n");
+    printf("\nListening for incoming connections.....%c[5m.\n%c[m\n", 0x1B, 0x1B);
     for(;;){
         // Accept an incoming connection:
         client_size = sizeof(client_addr);
@@ -75,7 +76,7 @@ void *producer(void *parameters){
             printf("Can't accept\n");
             exit(1);
         }
-        // printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        //printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
             printf("Couldn't receive\n");
             exit(1);
@@ -99,36 +100,37 @@ void *producer(void *parameters){
             free(received_task);
         } else {
             memcpy(&(received_task->start), client_message + PACKET_REQUEST_START_OFFSET, sizeof(uint64_t));
+            received_task->start = be64toh(received_task->start);
             memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
+            received_task->end = be64toh(received_task->end);
             memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
-            pthread_mutex_lock(&(params->queue_lock));
-            enqueue((void *) received_task, queue);
-            pthread_mutex_unlock(&(params->queue_lock));
-            pthread_cond_signal(&(params->queue_cond));
+            uint64_t task_priority = (uint64_t) client_message[PACKET_REQUEST_PRIO_OFFSET];
+
+            enqueue(queue , (void *) received_task, task_priority);
+
         }
     }
 }
 
 void* consumer(void * parameter){
     params_t* parameters = parameter;
-    fifo_t *queue = parameters->queue;
+    prio_queue_t *queue = parameters->queue;
     task_t* current_task;
 
     for(;;){
-        pthread_mutex_lock(&(parameters->queue_lock));
-        if(isEmpty(queue)) pthread_cond_wait(&(parameters->queue_cond), &(parameters->queue_lock));
-        current_task = (task_t *) dequeue(queue);
-        pthread_mutex_unlock(&(parameters->queue_lock));
-        uint64_t response = search(current_task->hash);
-        if (response <= 0) {
+      current_task = (task_t *) dequeue(queue);
+      if(current_task){
+        // Respond to client:
+          uint64_t response = search(current_task->hash);
+      if (response <= 0) {
 
-            // Respond to client:
-            response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
+          // Respond to client:
+          response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
 
-            insert(current_task->hash, response);
-        }
-
+          insert(current_task->hash, response);
+      }
         response = htobe64(response);
+
         if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
             printf("Can't send\n");
             exit(1);
@@ -152,12 +154,12 @@ int main(int argc, char *argv[]){
       exit(132);
     }
 
-
     pthread_t consumer_thread;
     pthread_t producer_thread;
 
 
-    fifo_t *queue = initialize(1000);
+    prio_queue_t *queue = malloc(sizeof(prio_queue_t));
+    initialize_queue(queue);
 
 
     params_t *param = malloc(sizeof(params_t));
@@ -175,7 +177,8 @@ int main(int argc, char *argv[]){
     pthread_join(consumer_thread, NULL);
 
     free(param);
-    free(queue->requests);
+    destroy_queue(queue);
+    free(queue);
 
    return 0;
 }
