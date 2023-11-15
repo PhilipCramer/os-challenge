@@ -27,6 +27,7 @@ typedef struct {
 } task_t;
 
 void *producer(void *parameters) {
+
     params_t *params = parameters;
     prio_queue_t *queue = params->queue;
     unsigned int socket_desc, client_size, client_sock;
@@ -63,6 +64,7 @@ void *producer(void *parameters) {
     }
     printf("\nListening for incoming connections.....\n");
     for (;;) {
+
         // Accept an incoming connection:
         client_size = sizeof(client_addr);
         client_sock = accept(socket_desc, (struct sockaddr *) &client_addr, &client_size);
@@ -72,7 +74,7 @@ void *producer(void *parameters) {
             exit(1);
         }
         // printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-        if (recv(client_sock, client_message, sizeof(client_message), 0) < 0) {
+        if (recv(client_sock, client_message, sizeof(client_message), 0) != 49) {
             printf("Couldn't receive\n");
             exit(1);
         }
@@ -80,11 +82,21 @@ void *producer(void *parameters) {
         //Parsing of received message
         task_t *received_task = malloc(sizeof(task_t));
         memcpy(&(received_task->hash), client_message, SHA256_DIGEST_LENGTH);
+        memcpy(&(received_task->start), client_message + PACKET_REQUEST_START_OFFSET, sizeof(uint64_t));
+
+        received_task->start = be64toh(received_task->start);
+
+        memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
+
+        received_task->end = be64toh(received_task->end);
+
+        memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
+        uint64_t task_priority = (uint64_t) client_message[PACKET_REQUEST_PRIO_OFFSET];
 
 
         uint64_t cached_value = search(received_task->hash);
-        if (cached_value > 0) {
 
+        if (cached_value > 0) {
             cached_value = htobe64(cached_value);
             if (send(client_sock, &cached_value, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE) {
                 printf("Can't send\n");
@@ -94,36 +106,34 @@ void *producer(void *parameters) {
             close(client_sock);
             free(received_task);
         } else {
-            memcpy(&(received_task->start), client_message + PACKET_REQUEST_START_OFFSET, sizeof(uint64_t));
-            received_task->start = be64toh(received_task->start);
-            memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
-            received_task->end = be64toh(received_task->end);
-            memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
-            uint64_t task_priority = (uint64_t) client_message[PACKET_REQUEST_PRIO_OFFSET];
 
-            enqueue(queue , (void *) received_task, task_priority);
+            enqueue(queue, (void *) received_task, task_priority);
 
         }
     }
 }
 
-void* consumer(void * parameter){
-    params_t* parameters = parameter;
+void *consumer(void *parameter) {
+    params_t *parameters = parameter;
     prio_queue_t *queue = parameters->queue;
-    task_t* current_task;
+    task_t *current_task;
 
-    for(;;){
-      current_task = (task_t *) dequeue(queue);
-      if(current_task){
+    for (;;) {
+
+        current_task = (task_t *) dequeue(queue);
+
+
         // Respond to client:
-          uint64_t response = search(current_task->hash);
-      if (response <= 0) {
+        uint64_t response = search(current_task->hash);
 
-          // Respond to client:
-          response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
+        if (response <= 0) {
 
-          insert(current_task->hash, response);
-      }
+            // Respond to client:
+            response = find_hash(current_task->hash, current_task->start, current_task->end);
+
+            insert(current_task->hash, response);
+
+        }
         response = htobe64(response);
         if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE) {
             printf("Can't send\n");
@@ -160,9 +170,6 @@ int main(int argc, char *argv[]) {
     param->queue = queue;
     param->port_number = port_num;
     initialize_cache();
-    pthread_cond_init(&(param->queue_cond), NULL);
-    pthread_mutex_init(&(param->queue_lock), NULL);
-
 
     pthread_create(&producer_thread, NULL, producer, (void *) param);
     pthread_create(&consumer_thread, NULL, consumer, (void *) param);
