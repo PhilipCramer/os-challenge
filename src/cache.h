@@ -20,13 +20,15 @@ typedef struct element {
     struct element *next;
 } Element;
 
+uint64_t calculate_index(unsigned char* searchKey);
+
 void insert(unsigned char key[SHA256_DIGEST_LENGTH], uint64_t value);
 
 uint64_t search(unsigned char* searchKey);
 
-uint64_t calculateIndex(unsigned char* searchKey);
-
 void initialize_cache();
+
+void free_cache();
 
 
 #endif //OS_GITLAB_CACHE_H

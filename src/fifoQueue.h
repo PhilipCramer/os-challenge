@@ -17,7 +17,7 @@ typedef struct {
 
 void enqueue(void * data, fifo_t* queue) ;
 void* dequeue(fifo_t* queue);
-bool isEmpty(fifo_t* queue);
+bool is_empty(fifo_t* queue);
 fifo_t* initialize(int size);
 
 #endif //OS_CHALLENGE_GROUP_08_FIFOQOUE_H

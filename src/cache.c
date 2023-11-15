@@ -12,7 +12,7 @@ Element** map;
 
 
 void insert(unsigned char* key, uint64_t value) {
-    uint64_t index = calculateIndex(key);
+    uint64_t index = calculate_index(key);
     pthread_mutex_lock(&cache_lock);
     Element *element = malloc(sizeof(Element));
     element->value = value;
@@ -29,28 +29,10 @@ void insert(unsigned char* key, uint64_t value) {
     pthread_mutex_unlock(&cache_lock);
 }
 
-void free_cache() {
-    Element* tmp;
-
-    for (int i = 0; i < CACHESIZE; ++i) {
-        if (map[i] == NULL) {
-            continue;
-        }
-
-        while(map[i] != NULL) {
-            tmp = map[i]->next;
-            free(map[i]);
-            map[i] = tmp;
-        }
-    }
-
-    free(map);
-    free(cache_lock);
-}
 
 uint64_t search(unsigned char *searchKey) {
 
-    uint64_t index = calculateIndex(searchKey);
+    uint64_t index = calculate_index(searchKey);
     uint64_t returnValue = 0;
     pthread_mutex_lock(&cache_lock);
 
@@ -85,4 +67,23 @@ void initialize_cache() {
         printf("Problem initializing memory");
     }
     pthread_mutex_init(&cache_lock, NULL);
+}
+
+void free_cache() {
+    Element* tmp;
+
+    for (int i = 0; i < CACHESIZE; ++i) {
+        if (map[i] == NULL) {
+            continue;
+        }
+
+        while(map[i] != NULL) {
+            tmp = map[i]->next;
+            free(map[i]);
+            map[i] = tmp;
+        }
+    }
+
+    free(map);
+    pthread_mutex_destroy(&cache_lock);
 }
