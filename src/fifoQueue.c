@@ -30,6 +30,6 @@ void * dequeue(fifo_t* queue) {
 }
 
 
-bool isEmpty(fifo_t* queue) {
+bool is_empty(fifo_t* queue) {
     return queue->head == queue->tail;
 }

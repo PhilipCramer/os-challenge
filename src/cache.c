@@ -51,7 +51,7 @@ uint64_t search(unsigned char *searchKey) {
     return returnValue;
 }
 
-uint64_t calculateIndex(unsigned char* searchKey) {
+uint64_t calculate_index(unsigned char* searchKey) {
 
     uint64_t value = 0;
     for (int i = 0; i < 8; ++i) {
@@ -66,5 +66,4 @@ void initialize_cache() {
         printf("Problem initializing memory");
     }
     pthread_mutex_init(&cache_lock, NULL);
-    // printf("Cache okay\r\n");
 }
