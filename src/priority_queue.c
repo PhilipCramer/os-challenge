@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #define INITIAL_QUEUE_SIZE 128
-#define COMPARE >
+#define COMPARE <
 
 
 int initialize_queue(prio_queue_t *reference){

@@ -25,13 +25,6 @@ typedef struct {
     unsigned int client;
 } task_t;
 
-uint64_t assign_priotiry(task_t * task, char received_priority){
-  uint64_t task_difficulty = task->end - task->start; 
-
-  uint64_t result = task_difficulty / received_priority;
-
-  return result;
-}
 
 void *producer(void *parameters){
     params_t *params = parameters;
@@ -68,7 +61,7 @@ void *producer(void *parameters){
         printf("Error while listening\n");
         exit(1);
     }
-    printf("\nListening for incoming connections.....\n");
+    printf("\nListening for incoming connections.....%c[5m.\n%c[m\n", 0x1B, 0x1B);
     for(;;){
         // Accept an incoming connection:
         client_size = sizeof(client_addr);
@@ -78,7 +71,7 @@ void *producer(void *parameters){
             printf("Can't accept\n");
             exit(1);
         }
-        printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        //printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
             printf("Couldn't receive\n");
             exit(1);
@@ -92,7 +85,8 @@ void *producer(void *parameters){
         memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
         received_task->end = be64toh(received_task->end);
         memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
-        uint64_t task_priority = assign_priotiry(received_task, client_message[PACKET_REQUEST_PRIO_OFFSET]);
+        uint64_t task_priority = (uint64_t) client_message[PACKET_REQUEST_PRIO_OFFSET];
+
         enqueue(queue , (void *) received_task, task_priority);
     }
 }
