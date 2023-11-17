@@ -6,10 +6,12 @@
 #include <unistd.h>
 #include <pthread.h>
 #include "bits/pthreadtypes.h"
+#include "endian.h"
 #include "messages.h"
 #include "hashFinder.h"
 #include "fifoQueue.h"
 #include "semaphore.h"
+#include "branch_prediction.h"
 
 typedef struct {
     int port_number;
@@ -70,7 +72,7 @@ void *producer(void *parameters){
             printf("Can't accept\n");
             exit(1);
         }
-        printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        //printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
             printf("Couldn't receive\n");
             exit(1);
@@ -94,15 +96,40 @@ void* consumer(void * parameter){
     params_t* parameters = parameter;
     fifo_t *queue = parameters->queue;
     task_t* current_task;
+    uint64_t response;
+    
+    int env_is_set = 0;
+    unsigned int env_found = 0;
+    uint64_t prediction = 0;
+  
 
     for(;;){
       pthread_mutex_lock(&(parameters->queue_lock));
       if(isEmpty(queue)) pthread_cond_wait(&(parameters->queue_cond), &(parameters->queue_lock));
       current_task = (task_t *) dequeue(queue);
       pthread_mutex_unlock(&(parameters->queue_lock));
+      
+    if(!env_is_set && !env_found){
+      printf("predicting enviroment... ");
+      env_found = predict_enviroment(be64toh(current_task->start), be64toh(current_task->end) - be64toh(current_task->start));
+      if (env_found){
+        set_enviroment(env_found);
+        printf("Branch enviroment found\n");
+      } else {
+        printf("Couldn't predict enviroment...\n");
+        env_is_set = 1;
+      }
+    }
 
+    if(env_found){
+      prediction = get_prediction(be64toh(current_task->end) - be64toh(current_task->start));
+    } 
+    if (prediction && prediction_holds(prediction, current_task->hash)){
+      response = prediction;  
+    } else {
     // Respond to client:
-    uint64_t response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
+      response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
+    }
 
     response = htobe64(response);
 
