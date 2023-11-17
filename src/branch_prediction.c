@@ -12,6 +12,31 @@ unsigned int predict_enviroment(uint64_t point_start ,int difficulty){
   int start_random = 1; 
   int seed;
   uint64_t test_start;
+
+  //printf("trying time seed\n");
+  int time_seed = time((time_t*) 0x0);
+
+  for(seed = time_seed + 100; seed > time_seed - 1100; seed--){
+    srand(seed);
+
+    uint tmp;
+    if (start_random == 1) {
+      tmp = rand();
+      test_start = (long)tmp << 0x20;
+
+      tmp = rand();
+      test_start = (test_start | (long)tmp) % (-difficulty - 2);
+    } else{
+      test_start = 1;
+    }
+    tmp = rand();
+    tmp = rand();
+    //test_value = test_start + (ulong)(long)iVar3 % difficulty;
+
+    if (/*test_value == point_val && */ test_start == point_start){
+      return seed;
+    }
+  }
   //uint64_t test_value;
   for(seed = 0; seed <= 100000000; seed++){
 
@@ -26,30 +51,6 @@ unsigned int predict_enviroment(uint64_t point_start ,int difficulty){
       test_start = (test_start | (long)tmp) % (-difficulty - 2);
     }
     else{
-      test_start = 1;
-    }
-    tmp = rand();
-    tmp = rand();
-    //test_value = test_start + (ulong)(long)iVar3 % difficulty;
-
-    if (/*test_value == point_val && */ test_start == point_start){
-      return seed;
-    }
-  }
-  printf("trying time seed\n");
-  int time_seed = time((time_t*) 0x0);
-
-  for(seed = time_seed + 100; seed > time_seed - 1100; seed--){
-    srand(seed);
-
-    uint tmp;
-    if (start_random == 1) {
-      tmp = rand();
-      test_start = (long)tmp << 0x20;
-
-      tmp = rand();
-      test_start = (test_start | (long)tmp) % (-difficulty - 2);
-    } else{
       test_start = 1;
     }
     tmp = rand();
