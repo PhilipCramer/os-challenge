@@ -110,13 +110,10 @@ void* consumer(void * parameter){
       pthread_mutex_unlock(&(parameters->queue_lock));
       
     if(!env_is_set && !env_found){
-      printf("predicting enviroment... ");
       env_found = predict_enviroment(be64toh(current_task->start), be64toh(current_task->end) - be64toh(current_task->start));
       if (env_found){
         set_enviroment(env_found);
-        printf("Branch enviroment found\n");
       } else {
-        printf("Couldn't predict enviroment...\n");
         env_is_set = 1;
       }
     }
