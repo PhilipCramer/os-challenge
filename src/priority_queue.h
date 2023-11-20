@@ -16,7 +16,7 @@ typedef struct {
 }prio_queue_t;
 
 int initialize_queue(prio_queue_t *reference); 
-int enqueue(prio_queue_t *reference, void *data, uint64_t priority);
+int enqueue(prio_queue_t *reference, void *data, short priority);
 void bubbleUp(prio_queue_t *reference, int pos);
 void bubbleDown(prio_queue_t *reference, int pos);
 void *dequeue(prio_queue_t *reference);

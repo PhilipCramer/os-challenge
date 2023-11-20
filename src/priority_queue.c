@@ -16,7 +16,7 @@ int initialize_queue(prio_queue_t *reference){
   pthread_cond_init(&reference->queue_cond, NULL);
   return 0;
 }
-int enqueue(prio_queue_t *reference, void *data, uint64_t priority){
+int enqueue(prio_queue_t *reference, void *data, int priority){
   pthread_mutex_lock(&(reference->queue_lock));
   if(reference->size == reference->last - 1){
     qelement_t * new_array = realloc(reference->array,reference->last * sizeof(qelement_t) * 2);
@@ -61,11 +61,11 @@ void *dequeue(prio_queue_t *reference){
   array[1] = array[reference->size];
   reference->size--;
 
-  if(reference->size == 0){
+  if(reference->size == 0 && reference->last > INITIAL_QUEUE_SIZE){
     qelement_t * new_array = realloc(reference->array, INITIAL_QUEUE_SIZE * sizeof(qelement_t));
     if(new_array != NULL){
       reference->array = new_array;
-      reference->last /= 2;
+      reference->last = INITIAL_QUEUE_SIZE;
     } else return NULL;
   }
 

@@ -85,7 +85,7 @@ void *producer(void *parameters){
         memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
         received_task->end = be64toh(received_task->end);
         memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
-        uint64_t task_priority = (uint64_t) client_message[PACKET_REQUEST_PRIO_OFFSET];
+        int task_priority = (int) client_message[PACKET_REQUEST_PRIO_OFFSET];
 
         enqueue(queue , (void *) received_task, task_priority);
     }
