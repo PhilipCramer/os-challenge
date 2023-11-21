@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +16,8 @@ typedef struct {
     int port_number;
     fifo_t *queue;
     pthread_cond_t queue_cond;
-    pthread_mutex_t queue_lock; 
+    pthread_mutex_t queue_lock;
+    unsigned int socket_desc;
 } params_t;
 
 typedef struct {
@@ -25,21 +27,29 @@ typedef struct {
     unsigned int client;
 } task_t;
 
+int term_flag = 0;
+
+void sig_handler(int signum){
+  printf("\nCaught signal %d\n", signum);
+  term_flag = !term_flag;
+}
+
 void *producer(void *parameters){
     params_t *params = parameters;
     fifo_t *queue = params->queue;
-    unsigned int socket_desc, client_size, client_sock;
+    unsigned int client_size, client_sock;
     struct sockaddr_in server_addr, client_addr;
     unsigned char client_message[PACKET_REQUEST_SIZE];
 
 
 
     // Create socket:
-    socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+    params->socket_desc = socket(AF_INET, SOCK_STREAM, 0);
 
-    if(socket_desc < 0){
+    if(params->socket_desc < 0){
         printf("Error while creating socket\n");
-        exit(1);
+        term_flag = 1;
+        return NULL;
     }
     printf("Socket created successfully\n");
 
@@ -49,31 +59,35 @@ void *producer(void *parameters){
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     // Bind to the set port and IP:
-    if(bind(socket_desc, (struct sockaddr*)&server_addr, sizeof(server_addr))<0){
+    if(bind(params->socket_desc, (struct sockaddr*)&server_addr, sizeof(server_addr))<0){
         printf("Couldn't bind to the port\n");
-        exit(1);
+        term_flag = 1;
+        return NULL;
     }
     printf("Done with binding\n");
 
     // Listen for clients:
-    if(listen(socket_desc, 128) < 0){
+    if(listen(params->socket_desc, 128) < 0){
         printf("Error while listening\n");
-        exit(1);
+        term_flag = 1;
+        return NULL;;
     }
     printf("\nListening for incoming connections.....\n");
-    for(;;){
+    while(!term_flag){
         // Accept an incoming connection:
         client_size = sizeof(client_addr);
-        client_sock = accept(socket_desc, (struct sockaddr *) &client_addr, &client_size);
+        client_sock = accept(params->socket_desc, (struct sockaddr *) &client_addr, &client_size);
 
         if (client_sock < 0) {
             printf("Can't accept\n");
-            exit(1);
+            term_flag = 1;
+            return NULL;
         }
         printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
             printf("Couldn't receive\n");
-            exit(1);
+            term_flag = 1;
+            return NULL;
         }
 
         //Parsing of received message
@@ -88,6 +102,7 @@ void *producer(void *parameters){
         pthread_mutex_unlock(&(params->queue_lock));
         pthread_cond_signal(&(params->queue_cond));
     }
+  return NULL;
 }
 
 void* consumer(void * parameter){
@@ -95,28 +110,32 @@ void* consumer(void * parameter){
     fifo_t *queue = parameters->queue;
     task_t* current_task;
 
-    for(;;){
+    while(!term_flag){
       pthread_mutex_lock(&(parameters->queue_lock));
       if(isEmpty(queue)) pthread_cond_wait(&(parameters->queue_cond), &(parameters->queue_lock));
       current_task = (task_t *) dequeue(queue);
       pthread_mutex_unlock(&(parameters->queue_lock));
-
-    // Respond to client:
-    uint64_t response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
-
-    response = htobe64(response);
-
-    if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
-        printf("Can't send\n");
-        exit(1);
-    }
-
-    // Closing the socket:
-    close(current_task->client);
-    free(current_task);
+      if(!current_task) 
+          return NULL;
     
-    }
 
+      // Respond to client:
+      uint64_t response = find_hash(current_task->hash, be64toh(current_task->start), be64toh(current_task->end));
+
+      response = htobe64(response);
+
+      if (send(current_task->client, &response, PACKET_RESPONSE_SIZE, 0) != PACKET_RESPONSE_SIZE){
+        printf("Can't send\n");
+        term_flag = 1;
+        return NULL;
+        pthread_exit(NULL);
+      }
+
+      // Closing the socket:
+      close(current_task->client);
+      free(current_task); 
+    }
+  return NULL;
 }
 
 int main(int argc, char *argv[]){
@@ -143,15 +162,42 @@ int main(int argc, char *argv[]){
     pthread_cond_init(&(param->queue_cond), NULL);
     pthread_mutex_init(&(param->queue_lock), NULL);
 
+    signal(SIGINT,sig_handler);
 
     pthread_create(&producer_thread,NULL,producer,(void *) param);
     pthread_create(&consumer_thread,NULL,consumer,(void *) param);
+
+    while(!term_flag){
+      sleep(2);
+    }
+    printf("Beginning close procedure\n");
+    if(shutdown(param->socket_desc, SHUT_RD) == 0){
+      printf("Closed Receiving socket\n");
+    }
+    close(param->socket_desc);
+    while(!isEmpty(queue) && term_flag){
+      printf("Queue not empty... \nPress \"CTRL + C to abort without finishing\n");
+      sleep(5);
+    }
     
+    while(!isEmpty(queue)){
+      task_t *tmp = dequeue(queue);
+      close(tmp->client);    
+      free(tmp);
+    }
+    
+    printf("Joining Producer thread\n") ;
     pthread_join(producer_thread, NULL);
+    printf("Joining Consumer thread\n");
+    pthread_cond_signal(&param->queue_cond);
     pthread_join(consumer_thread, NULL);
+    
+    pthread_cond_destroy(&param->queue_cond);
+    pthread_mutex_destroy(&param->queue_lock);
 
     free(param);
     free(queue->requests);
+    free(queue);
 
    return 0;
 }
