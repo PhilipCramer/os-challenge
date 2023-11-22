@@ -4,6 +4,8 @@
 
 #include "fifoQueue.h"
 
+extern int term_flag;
+
 fifo_t* initialize(int size) {
     fifo_t* queue = malloc(sizeof(fifo_t));
     void** ar = calloc(size, sizeof(void*));
@@ -11,8 +13,8 @@ fifo_t* initialize(int size) {
     queue->tail = 0;
     queue->size = size;
     queue->requests = ar;
-    pthread_cond_init(&(queue->queue_cond), NULL);
     pthread_mutex_init(&(queue->queue_lock), NULL);
+    pthread_cond_init(&(queue->queue_cond), NULL);
     return queue;
 }
 
@@ -28,7 +30,11 @@ void enqueue(void * data, fifo_t* queue) {
 
 void * dequeue(fifo_t* queue) {
     pthread_mutex_lock(&(queue->queue_lock));
-    while(isEmpty(queue)) pthread_cond_wait(&(queue->queue_cond), &(queue->queue_lock));
+
+    while(isEmpty(queue) && term_flag != 1) {
+        pthread_cond_wait(&(queue->queue_cond), &(queue->queue_lock));
+    }
+
     void * current = queue->requests[queue->head];
     queue->requests[queue->head] = NULL;
     queue->head++;

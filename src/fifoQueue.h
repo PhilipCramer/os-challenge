@@ -7,13 +7,14 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 typedef struct {
     int head;
     int tail;
     int size;
     void** requests;
-    pthread_mutex_t q_lock;
+    pthread_mutex_t queue_lock;
     pthread_cond_t queue_cond;
 } fifo_t;
 

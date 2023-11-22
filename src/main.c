@@ -182,12 +182,13 @@ int main(int argc, char *argv[]){
     
     printf("Joining Producer thread\n") ;
     pthread_join(producer_thread, NULL);
+    printf("Signaling\n");
+    pthread_cond_signal(&param->queue->queue_cond);
     printf("Joining Consumer thread\n");
-    pthread_cond_signal(&param->queue_cond);
     pthread_join(consumer_thread, NULL);
-    
-    pthread_cond_destroy(&param->queue_cond);
-    pthread_mutex_destroy(&param->queue_lock);
+    printf("Consumer joined");
+    pthread_cond_destroy(&param->queue->queue_cond);
+    pthread_mutex_destroy(&param->queue->queue_lock);
 
     free(param);
     free(queue->requests);
