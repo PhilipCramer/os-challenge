@@ -63,6 +63,7 @@ void *producer(void *parameters){
         term_flag = 1;
         return NULL;
     }
+
     printf("Done with binding\n");
 
     // Listen for clients:
@@ -100,6 +101,8 @@ void *producer(void *parameters){
         enqueue((void *) received_task, queue);
 
     }
+
+    close(params->socket_desc);
   return NULL;
 }
 
@@ -173,13 +176,14 @@ int main(int argc, char *argv[]){
       printf("Queue not empty... \nPress \"CTRL + C to abort without finishing\n");
       sleep(5);
     }
-    
+
+    term_flag = 1;
+
     while(!isEmpty(queue)){
-      task_t *tmp = dequeue(queue);
-      close(tmp->client);    
-      free(tmp);
+        task_t *tmp = dequeue(queue);
+        close(tmp->client);
+        free(tmp);
     }
-    
     printf("Joining Producer thread\n") ;
     pthread_join(producer_thread, NULL);
     printf("Signaling\n");

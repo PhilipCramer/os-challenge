@@ -31,9 +31,14 @@ void enqueue(void * data, fifo_t* queue) {
 void * dequeue(fifo_t* queue) {
     pthread_mutex_lock(&(queue->queue_lock));
 
-    while(isEmpty(queue) && term_flag != 1) {
+    while(isEmpty(queue) && !term_flag) {
+
+        printf("Stuck in dequeue with flag %d\n", term_flag);
         pthread_cond_wait(&(queue->queue_cond), &(queue->queue_lock));
     }
+
+    printf("Out of dequeue\n");
+
 
     void * current = queue->requests[queue->head];
     queue->requests[queue->head] = NULL;
