@@ -12,11 +12,10 @@
 #include "fifoQueue.h"
 #include "semaphore.h"
 
+//
 typedef struct {
     int port_number;
     fifo_t *queue;
-    pthread_cond_t queue_cond;
-    pthread_mutex_t queue_lock;
     unsigned int socket_desc;
 } params_t;
 
@@ -73,6 +72,7 @@ void *producer(void *parameters){
         return NULL;;
     }
     printf("\nListening for incoming connections.....\n");
+
     while(!term_flag){
         // Accept an incoming connection:
         client_size = sizeof(client_addr);
@@ -97,10 +97,8 @@ void *producer(void *parameters){
         memcpy(&(received_task->end), client_message + PACKET_REQUEST_END_OFFSET, sizeof(uint64_t));
         memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
 
-        pthread_mutex_lock(&(params->queue_lock));
         enqueue((void *) received_task, queue);
-        pthread_mutex_unlock(&(params->queue_lock));
-        pthread_cond_signal(&(params->queue_cond));
+
     }
   return NULL;
 }
@@ -111,10 +109,8 @@ void* consumer(void * parameter){
     task_t* current_task;
 
     while(!term_flag){
-      pthread_mutex_lock(&(parameters->queue_lock));
-      if(isEmpty(queue)) pthread_cond_wait(&(parameters->queue_cond), &(parameters->queue_lock));
       current_task = (task_t *) dequeue(queue);
-      pthread_mutex_unlock(&(parameters->queue_lock));
+
       if(!current_task) 
           return NULL;
     
@@ -159,8 +155,6 @@ int main(int argc, char *argv[]){
     params_t *param = malloc(sizeof(params_t));
     param->queue = queue;
     param->port_number = port_num;
-    pthread_cond_init(&(param->queue_cond), NULL);
-    pthread_mutex_init(&(param->queue_lock), NULL);
 
     signal(SIGINT,sig_handler);
 

@@ -13,6 +13,8 @@ typedef struct {
     int tail;
     int size;
     void** requests;
+    pthread_mutex_t q_lock;
+    pthread_cond_t queue_cond;
 } fifo_t;
 
 void enqueue(void * data, fifo_t* queue) ;
