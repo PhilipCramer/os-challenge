@@ -6,9 +6,9 @@
 
 extern int term_flag;
 
-fifo_t* initialize(int size) {
-    fifo_t* queue = malloc(sizeof(fifo_t));
-    void** ar = calloc(size, sizeof(void*));
+fifo_t *initialize(int size) {
+    fifo_t *queue = malloc(sizeof(fifo_t));
+    void **ar = calloc(size, sizeof(void *));
     queue->head = 0;
     queue->tail = 0;
     queue->size = size;
@@ -18,38 +18,33 @@ fifo_t* initialize(int size) {
     return queue;
 }
 
-void enqueue(void * data, fifo_t* queue) {
+void enqueue(void *data, fifo_t *queue) {
     pthread_mutex_lock(&(queue->queue_lock));
     queue->requests[queue->tail] = data;
     queue->tail++;
-    if(queue->tail == queue->size) queue->tail = 0;
+    if (queue->tail == queue->size) queue->tail = 0;
     pthread_cond_signal(&(queue->queue_cond));
     pthread_mutex_unlock(&(queue->queue_lock));
 }
 
 
-void * dequeue(fifo_t* queue) {
+void *dequeue(fifo_t *queue) {
     pthread_mutex_lock(&(queue->queue_lock));
 
-    while(isEmpty(queue) && !term_flag) {
-
-        printf("Stuck in dequeue with flag %d\n", term_flag);
+    while (isEmpty(queue) && !term_flag) {
         pthread_cond_wait(&(queue->queue_cond), &(queue->queue_lock));
     }
 
-    printf("Out of dequeue\n");
-
-
-    void * current = queue->requests[queue->head];
+    void *current = queue->requests[queue->head];
     queue->requests[queue->head] = NULL;
     queue->head++;
-    if(queue->head == queue->size) queue->head = 0;
+    if (queue->head == queue->size) queue->head = 0;
     pthread_mutex_unlock(&(queue->queue_lock));
 
     return current;
 }
 
 
-bool isEmpty(fifo_t* queue) {
+bool isEmpty(fifo_t *queue) {
     return queue->head == queue->tail;
 }
