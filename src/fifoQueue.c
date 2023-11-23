@@ -31,8 +31,9 @@ void enqueue(void *data, fifo_t *queue) {
 void *dequeue(fifo_t *queue) {
     pthread_mutex_lock(&(queue->queue_lock));
 
-    while (isEmpty(queue) && !term_flag) {
+    while (isEmpty(queue)) {
         pthread_cond_wait(&(queue->queue_cond), &(queue->queue_lock));
+        if(term_flag) return NULL;
     }
 
     void *current = queue->requests[queue->head];

@@ -84,13 +84,12 @@ void *producer(void *parameters) {
             term_flag = 1;
             return NULL;
         }
-        printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr),
-               ntohs(client_addr.sin_port));
         if (recv(client_sock, client_message, sizeof(client_message), 0) < 0) {
             printf("Couldn't receive\n");
             term_flag = 1;
             return NULL;
         }
+        printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
         //Parsing of received message
         task_t *received_task = malloc(sizeof(task_t));
@@ -112,11 +111,11 @@ void *consumer(void *parameter) {
     fifo_t *queue = parameters->queue;
     task_t *current_task;
 
-    while (!term_flag) {
+    for(;;) {
         current_task = (task_t *) dequeue(queue);
 
         if (!current_task) {
-            printf("Returning null\n");
+            //printf("Returning null\n");
             return NULL;
 
         }
@@ -180,6 +179,7 @@ int main(int argc, char *argv[]) {
         sleep(5);
     }
 
+    pthread_cond_signal(&param->queue->queue_cond);
     close(param->socket_desc);
 
     while (!isEmpty(queue)) {
@@ -187,19 +187,19 @@ int main(int argc, char *argv[]) {
         close(tmp->client);
         free(tmp);
     }
-    printf("Joining Producer thread\n");
+    //printf("Joining Producer thread\n");
     pthread_join(producer_thread, NULL);
-    printf("Signaling\n");
+    //printf("Signaling\n");
     pthread_cond_signal(&param->queue->queue_cond);
-    printf("Joining Consumer thread\n");
+    //printf("Joining Consumer thread\n");
     pthread_join(consumer_thread, NULL);
-    printf("Consumer joined");
+    //printf("Consumer joined");
     pthread_cond_destroy(&param->queue->queue_cond);
     pthread_mutex_destroy(&param->queue->queue_lock);
 
     free(param);
     free(queue->requests);
     free(queue);
-
+    printf("Server closed successfully\n");
     return 0;
 }
