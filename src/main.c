@@ -178,15 +178,20 @@ int main(int argc, char *argv[]) {
         printf("Queue not empty... \nPress \"CTRL + C to abort without finishing\n");
         sleep(5);
     }
-
-    pthread_cond_signal(&param->queue->queue_cond);
+    pthread_mutex_lock(&queue->queue_lock);
     close(param->socket_desc);
-
-    while (!isEmpty(queue)) {
-        task_t *tmp = dequeue(queue);
+  if(!isEmpty(queue)){  
+    printf("Clearing queue\n");
+    for(int i = 0; i < queue->size; i++) {
+      if (queue->requests[i]){
+        task_t *tmp = queue->requests[i];
         close(tmp->client);
         free(tmp);
+        queue->requests[i] = NULL;
+      }
     }
+  }
+  pthread_mutex_unlock(&queue->queue_lock);
     //printf("Joining Producer thread\n");
     pthread_join(producer_thread, NULL);
     //printf("Signaling\n");
@@ -196,7 +201,7 @@ int main(int argc, char *argv[]) {
     //printf("Consumer joined");
     pthread_cond_destroy(&param->queue->queue_cond);
     pthread_mutex_destroy(&param->queue->queue_lock);
-
+    
     free(param);
     free(queue->requests);
     free(queue);
