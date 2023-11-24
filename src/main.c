@@ -9,13 +9,14 @@
 #include "endian.h"
 #include "messages.h"
 #include "hashFinder.h"
+#include "openssl/sha.h"
 #include "priority_queue.h"
 #include "semaphore.h"
 #include "cache.h"
 #include "calculateHash.h"
 #include "semaphore.h"
 #include <stdlib.h>
-
+#include "branch_prediction.h"
 
 
 typedef struct {
@@ -31,6 +32,24 @@ typedef struct {
   unsigned int client;
 } task_t;
 
+void * oracle_of_wisdom(void* parameter){
+  task_t *data = (task_t*) parameter;
+  int difficulty = (data->end - data->start);
+  unsigned int seed = predict_enviroment(data->start, difficulty);
+
+  set_enviroment(seed);
+
+  for (int i = 0; i < 1000 && seed; i++){
+    unsigned char hash_prediction[32];
+    uint64_t prediction = get_prediction(difficulty);
+    SHA256((const unsigned char *) &prediction, sizeof(uint64_t), hash_prediction);
+
+    insert(hash_prediction, prediction);
+  }
+  
+  pthread_exit(0);
+}
+
 void *producer(void *parameters) {
 
   params_t *params = parameters;
@@ -38,6 +57,7 @@ void *producer(void *parameters) {
   unsigned int socket_desc, client_size, client_sock;
   struct sockaddr_in server_addr, client_addr;
   unsigned char client_message[PACKET_REQUEST_SIZE];
+  char env_found = 0;
 
 
   // Create socket:
@@ -100,6 +120,12 @@ void *producer(void *parameters) {
     memcpy(&(received_task->client), &client_sock, sizeof(unsigned int));
     int task_priority = (int) client_message[PACKET_REQUEST_PRIO_OFFSET];
 
+    if (!env_found){
+      pthread_t oracle;
+      pthread_create(&oracle, NULL, &oracle_of_wisdom, received_task);
+      env_found = 1;
+    }
+
 
     uint64_t cached_value = search(received_task->hash);
 
@@ -118,6 +144,7 @@ void *producer(void *parameters) {
     }
   }
 }
+
 
 void* consumer(void * parameter) {
   params_t *parameters = parameter;
