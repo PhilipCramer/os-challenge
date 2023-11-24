@@ -3,5 +3,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "stdbool.h"
+#include "calculateHash.h"
 
-uint64_t find_hash(unsigned char hash_to_find[], uint64_t start, uint64_t stop);
+
+
+void find_hash(uint64_t start, uint64_t stop, calculation_params_t * param);
