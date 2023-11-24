@@ -40,6 +40,8 @@ void *producer(void *parameters) {
   unsigned char client_message[PACKET_REQUEST_SIZE];
 
 
+  // Create socket:
+  socket_desc = socket(AF_INET, SOCK_STREAM, 0);
 
   // Create socket:
   socket_desc = socket(AF_INET, SOCK_STREAM, 0);
