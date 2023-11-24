@@ -72,7 +72,7 @@ void *producer(void *parameters) {
         term_flag = 1;
         return NULL;;
     }
-    printf("\nListening for incoming connections.....\n");
+    printf("\nListening for incoming connections....%c[5m.\n%c[m\n", 0x1B, 0x1B");
 
     while (!term_flag) {
         // Accept an incoming connection:
@@ -89,7 +89,7 @@ void *producer(void *parameters) {
             term_flag = 1;
             return NULL;
         }
-        printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        //printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
         //Parsing of received message
         task_t *received_task = malloc(sizeof(task_t));
